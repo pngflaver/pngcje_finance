@@ -1,0 +1,1 @@
+Phase 4: Statutory Form Templates Verification\nAutomated Test Command: bench run-tests --app pngcje_finance --doctype 'PNGCJE Cashbook Entry'\nManual Verification: Confirmed FF3 (Green) and FF4 (Yellow) rendering with correct payee/amount data.\nUser Confirmation: Pending
