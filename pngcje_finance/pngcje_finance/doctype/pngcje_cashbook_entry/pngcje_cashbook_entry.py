@@ -1,7 +1,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import getdate
+from frappe.utils import getdate, fmt_money
 
 class PNGCJECashbookEntry(Document):
 	def validate(self):
@@ -28,7 +28,7 @@ class PNGCJECashbookEntry(Document):
 		})
 
 		if not allocation_name:
-			frappe.throw(_("No allocation found for Program Officer {0} in Fiscal Year {1}")
+			frappe.throw(_("Budget Error: No allocation found for Program Officer {0} in Fiscal Year {1}. Please contact Finance.")
 				.format(self.program_officer, fiscal_year))
 
 		allocation_doc = frappe.get_doc("PNGCJE Program Officer Allocation", allocation_name)
@@ -41,5 +41,10 @@ class PNGCJECashbookEntry(Document):
 				break
 		
 		if self.amount > monthly_limit:
-			frappe.throw(_("Amount ({0}) exceeds the monthly allocation ({1}) for {2}")
-				.format(self.amount, monthly_limit, month_name))
+			frappe.throw(
+				msg=_("<b>Budget Limit Exceeded!</b><br><br>"
+					  "The amount <b>{0}</b> exceeds your monthly allocation of <b>{1}</b> for <b>{2}</b>.<br><br>"
+					  "Please adjust the amount or request a budget variation from the Finance Director.")
+					.format(fmt_money(self.amount, currency="PGK"), fmt_money(monthly_limit, currency="PGK"), month_name),
+				title=_("Allocation Warning")
+			)
