@@ -1,0 +1,69 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "creation": "2026-05-21 21:05:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "program_officer",
+  "fiscal_year",
+  "annual_allocation",
+  "monthly_allocations"
+ ],
+ "fields": [
+  {
+   "fieldname": "program_officer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Program Officer",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fieldname": "fiscal_year",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Fiscal Year",
+   "options": "Fiscal Year",
+   "reqd": 1
+  },
+  {
+   "fieldname": "annual_allocation",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Annual Allocation",
+   "reqd": 1
+  },
+  {
+   "fieldname": "monthly_allocations",
+   "fieldtype": "Table",
+   "label": "Monthly Allocations",
+   "options": "PNGCJE Monthly Allocation"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-21 21:20:00.000000",
+ "modified_by": "Administrator",
+ "module": "PNGCJE Finance",
+ "name": "PNGCJE Program Officer Allocation",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

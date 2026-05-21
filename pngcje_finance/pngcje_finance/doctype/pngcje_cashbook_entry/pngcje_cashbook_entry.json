@@ -1,0 +1,117 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-05-21 20:40:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "date",
+  "payee",
+  "particulars",
+  "vote_activity_code",
+  "program_officer",
+  "target_audience",
+  "cost_center",
+  "amount",
+  "workflow_state"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "PNGCJE-CASH-.YYYY.-.####"
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "payee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Payee",
+   "options": "Supplier",
+   "reqd": 1
+  },
+  {
+   "fieldname": "particulars",
+   "fieldtype": "Small Text",
+   "label": "Particulars",
+   "reqd": 1
+  },
+  {
+   "fieldname": "vote_activity_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Vote/Activity Code",
+   "options": "Account",
+   "reqd": 1
+  },
+  {
+   "fieldname": "program_officer",
+   "fieldtype": "Link",
+   "label": "Program Officer",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fieldname": "target_audience",
+   "fieldtype": "Select",
+   "label": "Target Audience",
+   "options": "\nJO-P\nJ-PNG\nJ-SOL\nJO-F\nJ-INT\nJ-OTHER",
+   "reqd": 1
+  },
+  {
+   "fieldname": "cost_center",
+   "fieldtype": "Link",
+   "label": "Cost Center",
+   "options": "Cost Center",
+   "reqd": 1
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount",
+   "reqd": 1
+  },
+  {
+   "fieldname": "workflow_state",
+   "fieldtype": "Data",
+   "label": "Workflow State",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-21 20:55:00.000000",
+ "modified_by": "Administrator",
+ "module": "PNGCJE Finance",
+ "name": "PNGCJE Cashbook Entry",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
