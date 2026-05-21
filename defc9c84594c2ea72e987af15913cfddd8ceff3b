@@ -1,0 +1,1 @@
+Phase 2: Core Data Models Verification\nAutomated Test Command: bench run-tests --app pngcje_finance --doctype 'PNGCJE Cashbook Entry'\nManual Verification: Confirmed mandatory fields, amount validation, and allocation sum logic.\nUser Confirmation: Yes
