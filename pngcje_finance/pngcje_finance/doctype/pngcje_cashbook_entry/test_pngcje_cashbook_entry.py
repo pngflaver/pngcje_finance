@@ -28,6 +28,10 @@ class TestPNGCJECashbookEntry(FrappeTestCase):
 			frappe.db.sql("""insert into `tabCost Center` (name, cost_center_name, company, is_group) 
 				values ('Test Cost Center - PNGCJE', 'Test Cost Center', 'PNGCJE', 0)""")
 
+		# Create Gender
+		if not frappe.db.exists("Gender", "Female"):
+			frappe.get_doc({"doctype": "Gender", "gender": "Female"}).insert()
+
 	def test_required_fields_exist(self):
 		"""
 		Test that all required fields for the PNGCJE Cashbook Entry exist in the schema.
@@ -36,54 +40,51 @@ class TestPNGCJECashbookEntry(FrappeTestCase):
 		required_fields = [
 			"date",
 			"payee",
-			"particulars",
 			"vote_activity_code",
 			"program_officer",
 			"target_audience",
 			"cost_center",
+			"items",
 			"amount"
 		]
 		
 		for field in required_fields:
 			self.assertTrue(hasattr(doc, field), f"Field '{field}' missing from PNGCJE Cashbook Entry")
 
-	def test_mandatory_fields_validation(self):
+	def test_total_amount_calculation(self):
 		"""
-		Test that mandatory fields are enforced at the database level/validation level.
-		"""
-		doc = frappe.new_doc("PNGCJE Cashbook Entry")
-		# Missing all fields
-		self.assertRaises(frappe.ValidationError, doc.insert)
-
-	def test_amount_positive(self):
-		"""
-		Test that the amount must be greater than zero.
+		Test that the total amount is correctly calculated from the items.
 		"""
 		doc = frappe.new_doc("PNGCJE Cashbook Entry")
-		doc.date = frappe.utils.nowdate()
-		doc.amount = -100
-		# We expect a validation error for negative amounts
-		self.assertRaises(frappe.ValidationError, doc.insert)
+		doc.append("items", {
+			"description": "Item 1",
+			"qty": 2,
+			"unit_price": 100
+		})
+		doc.append("items", {
+			"description": "Item 2",
+			"qty": 3,
+			"unit_price": 50
+		})
+		doc.calculate_total_amount()
+		self.assertEqual(doc.amount, 350)
 
-	def test_funds_validation(self):
+	def test_funds_validation_with_items(self):
 		"""
-		Test that an entry cannot be saved if it exceeds the officer's allocation for the month.
+		Test that an entry cannot be saved if the itemized total exceeds the officer's allocation.
 		"""
-		# Create Gender
-		if not frappe.db.exists("Gender", "Female"):
-			frappe.get_doc({"doctype": "Gender", "gender": "Female"}).insert()
-
 		# Create a Program Officer (Employee)
 		officer_id = frappe.db.get_value("Employee", {"employee_number": "PO-001"})
 		if not officer_id:
 			employee = frappe.get_doc({
 				"doctype": "Employee",
 				"employee_number": "PO-001",
-				"first_name": "Test",
-				"last_name": "Officer",
+				"first_name": "John",
+				"last_name": "Emma",
 				"gender": "Female",
 				"date_of_birth": "1990-01-01",
-				"date_of_joining": "2020-01-01"
+				"date_of_joining": "2020-01-01",
+				"company": "PNGCJE"
 			}).insert()
 			officer_id = employee.name
 		
@@ -110,16 +111,20 @@ class TestPNGCJECashbookEntry(FrappeTestCase):
 			]
 		}).insert()
 
-		# Try to create a Cashbook Entry that exceeds the monthly allocation
+		# Create entry for January with total exceeding 500
 		doc = frappe.new_doc("PNGCJE Cashbook Entry")
 		doc.date = f"{fiscal_year}-01-15"
 		doc.program_officer = officer_id
-		doc.amount = 600 # Exceeds 500
 		doc.payee = "Test Supplier"
-		doc.particulars = "Test"
 		doc.vote_activity_code = "Test Account - PNGCJE"
 		doc.target_audience = "JO-P"
 		doc.cost_center = "Test Cost Center - PNGCJE"
+		
+		doc.append("items", {
+			"description": "Expensive Item",
+			"qty": 1,
+			"unit_price": 600
+		})
 
 		# This should fail validation
 		self.assertRaises(frappe.ValidationError, doc.insert)

@@ -18,12 +18,17 @@ class TestPNGCJEStatutoryForms(FrappeTestCase):
 				"naming_series": "PNGCJE-CASH-.2026.-.####",
 				"date": "2026-05-21",
 				"payee": "Air Niugini",
-				"particulars": "Travel to Lae for workshop",
 				"vote_activity_code": vote_code,
 				"program_officer": frappe.db.get_value("Employee", {"employee_number": "PO-001"}),
 				"target_audience": "JO-P",
 				"cost_center": cost_center,
-				"amount": 500
+				"items": [
+					{
+						"description": "Travel to Lae",
+						"qty": 1,
+						"unit_price": 500
+					}
+				]
 			})
 			doc.flags.ignore_mandatory = True
 			doc.insert()
@@ -37,7 +42,7 @@ class TestPNGCJEStatutoryForms(FrappeTestCase):
 		"""
 		pf = frappe.get_doc("Print Format", "PNGCJE FF3 - Requisition for Expenditure")
 		self.assertIn("REQUISITION FOR EXPENDITURE (FF3)", pf.html)
-		self.assertIn("{{ doc.payee }}", pf.html)
+		self.assertIn("{% for item in doc.items %}", pf.html)
 
 	def test_ff4_format_content(self):
 		"""
@@ -45,7 +50,7 @@ class TestPNGCJEStatutoryForms(FrappeTestCase):
 		"""
 		pf = frappe.get_doc("Print Format", "PNGCJE FF4 - General Expenses")
 		self.assertIn("GENERAL EXPENSES (FF4)", pf.html)
-		self.assertIn("{{ doc.payee }}", pf.html)
+		self.assertIn("{% for item in doc.items %}", pf.html)
 
 	def test_rendering_manually(self):
 		"""
@@ -54,4 +59,5 @@ class TestPNGCJEStatutoryForms(FrappeTestCase):
 		pf = frappe.get_doc("Print Format", "PNGCJE FF3 - Requisition for Expenditure")
 		rendered = frappe.render_template(pf.html, {"doc": self.sample_doc})
 		self.assertIn("REQUISITION FOR EXPENDITURE (FF3)", rendered)
+		self.assertIn("Travel to Lae", rendered)
 		self.assertIn("Air Niugini", rendered)
