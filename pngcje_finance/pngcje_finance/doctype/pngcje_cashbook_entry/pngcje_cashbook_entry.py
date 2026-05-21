@@ -13,7 +13,17 @@ class PNGCJECashbookEntry(Document):
 			frappe.throw(_("Amount must be greater than zero."))
 
 	def validate_funds(self):
-		if not self.program_officer or not self.date:
+		# If user is req_officer, they are likely John Emma
+		if not self.program_officer:
+			# Auto-assign officer if missing and user is linked to one
+			employee = frappe.db.get_value("Employee", {"user_id": frappe.session.user})
+			if employee:
+				self.program_officer = employee
+
+		if not self.program_officer:
+			frappe.throw(_("Please select a Program Officer to check budget availability."))
+
+		if not self.date:
 			return
 
 		# Get Month Name from Date
@@ -28,7 +38,7 @@ class PNGCJECashbookEntry(Document):
 		})
 
 		if not allocation_name:
-			frappe.throw(_("Budget Error: No allocation found for Program Officer {0} in Fiscal Year {1}. Please contact Finance.")
+			frappe.throw(_("No budget allocation found for {0} in {1}. Save aborted.")
 				.format(self.program_officer, fiscal_year))
 
 		allocation_doc = frappe.get_doc("PNGCJE Program Officer Allocation", allocation_name)
@@ -41,10 +51,10 @@ class PNGCJECashbookEntry(Document):
 				break
 		
 		if self.amount > monthly_limit:
-			frappe.throw(
-				msg=_("<b>Budget Limit Exceeded!</b><br><br>"
-					  "The amount <b>{0}</b> exceeds your monthly allocation of <b>{1}</b> for <b>{2}</b>.<br><br>"
-					  "Please adjust the amount or request a budget variation from the Finance Director.")
-					.format(fmt_money(self.amount, currency="PGK"), fmt_money(monthly_limit, currency="PGK"), month_name),
-				title=_("Allocation Warning")
-			)
+			msg = _("<h3>Budget Limit Exceeded!</h3><hr>"
+					"<b>Attempted Amount:</b> {0}<br>"
+					"<b>Monthly Limit ({1}):</b> {2}<br><br>"
+					"Your transaction has been blocked. Please reduce the amount or contact Finance.") \
+				.format(fmt_money(self.amount, "PGK"), month_name, fmt_money(monthly_limit, "PGK"))
+			
+			frappe.throw(msg=msg, title=_("Budget Enforcement"))
