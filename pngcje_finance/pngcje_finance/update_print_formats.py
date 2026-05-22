@@ -183,6 +183,9 @@ def update_print_formats():
 		}
 		
 		@media print {
+			@page {
+				size: landscape;
+			}
 			body {
 				background-color: #fff !important;
 			}
