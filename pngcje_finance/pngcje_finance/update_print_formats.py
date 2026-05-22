@@ -552,6 +552,8 @@ def update_print_formats():
 		if frappe.db.exists('Print Format', f['name']):
 			doc = frappe.get_doc('Print Format', f['name'])
 			doc.html = f['html']
+			doc.custom_format = 1
+			doc.format_type = 'Jinja'
 			doc.save()
 			print(f"SUCCESS: Print Format '{f['name']}' updated in database.")
 		else:
