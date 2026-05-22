@@ -54,7 +54,8 @@ def create_workflow():
 			{"state": "Draft", "doc_status": 0, "allow_edit": "PNGCJE Requisitioning Officer"},
 			{"state": "Pending Funds Check", "doc_status": 0, "allow_edit": "Financial Delegate"},
 			{"state": "Pending Sec 32 Approval", "doc_status": 0, "allow_edit": "Section 32 Officer"},
-			{"state": "Approved (Committed)", "doc_status": 1, "allow_edit": "Section 32 Officer"},
+			# Once submitted, we allow the next officers in line to "edit" (which in Frappe submitted mode means "see buttons")
+			{"state": "Approved (Committed)", "doc_status": 1, "allow_edit": "Certifying Officer"},
 			{"state": "Pending Claim Certification", "doc_status": 1, "allow_edit": "Certifying Officer"},
 			{"state": "Ready for Payment", "doc_status": 1, "allow_edit": "Payment Authorizer"}
 		],
@@ -79,12 +80,6 @@ def create_workflow():
 			},
 			{
 				"state": "Approved (Committed)",
-				"action": "Submit for Certification",
-				"next_state": "Pending Claim Certification",
-				"allowed": "PNGCJE Requisitioning Officer"
-			},
-			{
-				"state": "Pending Claim Certification",
 				"action": "Certify Claim",
 				"next_state": "Ready for Payment",
 				"allowed": "Certifying Officer"
@@ -92,8 +87,15 @@ def create_workflow():
 		]
 	})
 	workflow.insert()
+	
+	# 5. CRITICAL: Grant 'Submit' permission to Certifying Officer 
+	# In Frappe, to move a Submitted doc to another state, the user needs 'Submit' permission on the DocType
+	if not frappe.db.exists("Custom DocPerm", {"parent": "PNGCJE Cashbook Entry", "role": "Certifying Officer", "submit": 1}):
+		frappe.db.sql("""update `tabCustom DocPerm` set submit=1, cancel=1 
+			where parent='PNGCJE Cashbook Entry' and role in ('Certifying Officer', 'Payment Authorizer')""")
+
 	frappe.db.commit()
-	print(f"Workflow '{workflow_name}' created successfully.")
+	print(f"Workflow '{workflow_name}' updated successfully.")
 
 if __name__ == "__main__":
 	create_workflow()

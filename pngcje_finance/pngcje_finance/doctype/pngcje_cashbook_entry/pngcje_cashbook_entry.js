@@ -1,5 +1,10 @@
 // PNGCJE Cashbook Entry Client-Side Script
+console.log("PNGCJE Cashbook Entry Script Loaded");
+
 frappe.ui.form.on('PNGCJE Cashbook Entry', {
+	onload: function(frm) {
+		console.log("Form Loaded");
+	},
 	setup: function(frm) {
 		// Set query for accounts to only show expense accounts
 		frm.set_query('vote_activity_code', function() {
@@ -10,6 +15,10 @@ frappe.ui.form.on('PNGCJE Cashbook Entry', {
 				}
 			};
 		});
+	},
+	validate: function(frm) {
+		console.log("Validating Form...");
+		calculate_total(frm);
 	}
 });
 
@@ -28,7 +37,7 @@ frappe.ui.form.on('PNGCJE Cashbook Item', {
 var calculate_row_and_total = function(frm, cdt, cdn) {
 	var row = locals[cdt][cdn];
 	row.amount = flt(row.qty) * flt(row.unit_price);
-	refresh_field('items');
+	frm.refresh_field('items');
 	calculate_total(frm);
 };
 
@@ -39,11 +48,16 @@ var calculate_total = function(frm) {
 	});
 	frm.set_value('amount', total);
 
+	console.log("CURRENT TOTAL: " + total);
+
 	if (total > 1000) {
+		// UNMISTAKABLE ALERT
+		alert("BUDGET WARNING: Total is " + total + " PGK. This exceeds the 1,000 PGK limit!");
+		
 		frappe.msgprint({
-			title: __('Budget Alert'),
+			title: __('Budget Warning'),
 			indicator: 'orange',
-			message: __('Note: This total (<b>{0}</b>) exceeds the standard monthly allocation of 1,000 PGK. Verification will happen on Save.')
+			message: __('The total amount (<b>{0}</b>) exceeds the standard 1,000 PGK limit.')
 				.format(format_currency(total, 'PGK'))
 		});
 	}

@@ -20,7 +20,7 @@ class PNGCJECashbookEntry(Document):
 		self.amount = total
 
 	def validate_amount(self):
-		if not self.amount or self.amount <= 0:
+		if flt(self.amount) <= 0:
 			frappe.throw(_("Total Amount must be greater than zero. Please add items with valid Price and Qty."))
 
 	def validate_funds(self):
@@ -57,14 +57,14 @@ class PNGCJECashbookEntry(Document):
 		monthly_limit = 0
 		for row in allocation_doc.monthly_allocations:
 			if row.month == month_name:
-				monthly_limit = float(row.allocation_amount)
+				monthly_limit = flt(row.allocation_amount)
 				break
 		
-		if self.amount > monthly_limit:
+		if flt(self.amount) > flt(monthly_limit):
 			msg = _("<h3>Budget Limit Exceeded!</h3><hr>"
 					"<b>Attempted Total:</b> {0}<br>"
 					"<b>Monthly Limit ({1}):</b> {2}<br><br>"
 					"Your transaction has been blocked. Please reduce the quantities or unit prices.") \
-				.format(fmt_money(self.amount, currency="PGK"), month_name, fmt_money(monthly_limit, currency="PGK"))
+				.format(fmt_money(self.amount, "PGK"), month_name, fmt_money(monthly_limit, "PGK"))
 			
 			frappe.throw(msg=msg, title=_("Budget Enforcement"))
