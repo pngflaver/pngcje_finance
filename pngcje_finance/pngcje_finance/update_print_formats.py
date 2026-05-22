@@ -190,6 +190,24 @@ def update_print_formats():
 			border-color: #b8860b;
 			color: #b8860b;
 		}
+
+		.digital-stamp {
+			border: 2px dashed #008000;
+			color: #008000;
+			padding: 6px 10px;
+			font-family: 'Outfit', sans-serif;
+			font-size: 8.5px;
+			text-transform: uppercase;
+			display: inline-block;
+			margin: 5px 0;
+			border-radius: 4px;
+			transform: rotate(-1deg);
+			background-color: rgba(0, 128, 0, 0.03);
+			font-weight: bold;
+			line-height: 1.3;
+			text-align: left;
+			box-sizing: border-box;
+		}
 		
 		@media print {
 			@page {
@@ -250,6 +268,17 @@ def update_print_formats():
 	"""
 
 	ff3_html = style + account_parsing_jinja + """
+	{% set comments = frappe.get_all("Comment", filters={"reference_doctype": "PNGCJE Cashbook Entry", "reference_name": doc.name, "comment_type": "Workflow"}, fields=["creation", "owner", "content"], order_by="creation asc") %}
+	{% set ns_wf = namespace(req=none, fund=none, sec32=none) %}
+	{% for c in comments %}
+		{% if c.content == "Pending Funds Check" %}
+			{% set ns_wf.req = c %}
+		{% elif c.content == "Pending Sec 32 Approval" %}
+			{% set ns_wf.fund = c %}
+		{% elif c.content == "Approved (Committed)" %}
+			{% set ns_wf.sec32 = c %}
+		{% endif %}
+	{% endfor %}
 	<!-- REQUISITION FOR EXPENDITURE (FF3) -->
 	<div class="statutory-form theme-green">
 		<div class="header-container">
@@ -348,7 +377,19 @@ def update_print_formats():
 					<div class="sig-title">1. Authorized Requisition Officer</div>
 					I certify that this requisition is made in accordance with approved activities.
 					<br><br>
-					Signature: _______________________________ Date: {{ doc.get_formatted('date') }}<br>
+					{% if ns_wf.req %}
+						{% set req_user = frappe.db.get_value("User", ns_wf.req.owner, "full_name") or ns_wf.req.owner %}
+						<div class="digital-stamp" style="border-color: #1b4d3e; color: #1b4d3e; background-color: rgba(27, 77, 62, 0.05);">
+							<div style="font-weight: bold; font-size: 8px; letter-spacing: 0.5px; border-bottom: 1px dashed #1b4d3e; padding-bottom: 2px; margin-bottom: 3px;">DIGITALLY SIGNED / SUBMITTED</div>
+							<div style="font-size: 8px; font-weight: normal; text-transform: none; line-height: 1.2;">
+								Signatory: <strong>{{ req_user }}</strong><br>
+								Timestamp: {{ frappe.utils.format_datetime(ns_wf.req.creation, "dd/MM/yyyy HH:mm") }}
+							</div>
+						</div>
+						<br>
+					{% else %}
+						Signature: _______________________________ Date: _________________<br>
+					{% endif %}
 					Name: <span class="bold-text">{{ doc.program_officer or '' }}</span><br>
 					Designation: Deputy Executive Director / Program Officer
 				</div>
@@ -357,9 +398,21 @@ def update_print_formats():
 					<div class="sig-title">3. Approval of Section 32 Officer</div>
 					<span style="font-size: 9px;">(Required for all requisitions exceeding K500)</span>
 					<br>
-					Status: [ &nbsp; ] Approved &nbsp; &nbsp; [ &nbsp; ] Not Approved
+					Status: [ {% if ns_wf.sec32 %}x{% else %}&nbsp;{% endif %} ] Approved &nbsp; &nbsp; [ &nbsp; ] Not Approved
 					<br><br>
-					Signature: _______________________________ Date: _____/_____/_____<br>
+					{% if ns_wf.sec32 %}
+						{% set sec32_user = frappe.db.get_value("User", ns_wf.sec32.owner, "full_name") or ns_wf.sec32.owner %}
+						<div class="digital-stamp" style="border-color: #b8860b; color: #b8860b; background-color: rgba(184, 134, 11, 0.05);">
+							<div style="font-weight: bold; font-size: 8px; letter-spacing: 0.5px; border-bottom: 1px dashed #b8860b; padding-bottom: 2px; margin-bottom: 3px;">SEC 32 APPROVED</div>
+							<div style="font-size: 8px; font-weight: normal; text-transform: none; line-height: 1.2;">
+								Officer: <strong>{{ sec32_user }}</strong><br>
+								Timestamp: {{ frappe.utils.format_datetime(ns_wf.sec32.creation, "dd/MM/yyyy HH:mm") }}
+							</div>
+						</div>
+						<br>
+					{% else %}
+						Signature: _______________________________ Date: _____/_____/_____<br>
+					{% endif %}
 					Designation: Section 32 Officer &nbsp; &nbsp; Designated Limit: K _______________
 				</div>
 			</div>
@@ -411,7 +464,19 @@ def update_print_formats():
 					<div class="sig-title">2. Funds Available</div>
 					I certify that funds are available in the specified allocation.
 					<br><br>
-					Signature: _______________________________ Date: _____/_____/_____<br>
+					{% if ns_wf.fund %}
+						{% set fund_user = frappe.db.get_value("User", ns_wf.fund.owner, "full_name") or ns_wf.fund.owner %}
+						<div class="digital-stamp" style="border-color: #1b4d3e; color: #1b4d3e; background-color: rgba(27, 77, 62, 0.05);">
+							<div style="font-weight: bold; font-size: 8px; letter-spacing: 0.5px; border-bottom: 1px dashed #1b4d3e; padding-bottom: 2px; margin-bottom: 3px;">FUNDS CERTIFIED</div>
+							<div style="font-size: 8px; font-weight: normal; text-transform: none; line-height: 1.2;">
+								Delegate: <strong>{{ fund_user }}</strong><br>
+								Timestamp: {{ frappe.utils.format_datetime(ns_wf.fund.creation, "dd/MM/yyyy HH:mm") }}
+							</div>
+						</div>
+						<br>
+					{% else %}
+						Signature: _______________________________ Date: _____/_____/_____<br>
+					{% endif %}
 					Designation: Financial Delegate / Commitment Clerk
 				</div>
 
@@ -419,7 +484,19 @@ def update_print_formats():
 					<div class="sig-title">4. Funds Committed</div>
 					Requisition has been entered in the commitment register.
 					<br><br>
-					Signature: _______________________________ Date: _____/_____/_____<br>
+					{% if ns_wf.sec32 %}
+						{% set commit_user = frappe.db.get_value("User", ns_wf.sec32.owner, "full_name") or ns_wf.sec32.owner %}
+						<div class="digital-stamp" style="border-color: #1b4d3e; color: #1b4d3e; background-color: rgba(27, 77, 62, 0.05);">
+							<div style="font-weight: bold; font-size: 8px; letter-spacing: 0.5px; border-bottom: 1px dashed #1b4d3e; padding-bottom: 2px; margin-bottom: 3px;">COMMITTED</div>
+							<div style="font-size: 8px; font-weight: normal; text-transform: none; line-height: 1.2;">
+								Clerk: <strong>{{ commit_user }}</strong><br>
+								Timestamp: {{ frappe.utils.format_datetime(ns_wf.sec32.creation, "dd/MM/yyyy HH:mm") }}
+							</div>
+						</div>
+						<br>
+					{% else %}
+						Signature: _______________________________ Date: _____/_____/_____<br>
+					{% endif %}
 					Designation: Commitment Clerk
 				</div>
 			</div>
@@ -431,6 +508,13 @@ def update_print_formats():
 	# FF4 Print Format Design (individual claim sheets)
 	# ----------------------------------------------------
 	ff4_html = style + account_parsing_jinja + """
+	{% set comments = frappe.get_all("Comment", filters={"reference_doctype": "PNGCJE Cashbook Entry", "reference_name": doc.name, "comment_type": "Workflow"}, fields=["creation", "owner", "content"], order_by="creation asc") %}
+	{% set ns_wf = namespace(cert=none) %}
+	{% for c in comments %}
+		{% if c.content == "Ready for Payment" %}
+			{% set ns_wf.cert = c %}
+		{% endif %}
+	{% endfor %}
 	<!-- GENERAL EXPENSES (FF4) -->
 	{% for item in doc.items %}
 	<div class="statutory-form theme-yellow" style="{% if not loop.last %}page-break-after: always;{% endif %} margin-bottom: 25px;">
@@ -523,7 +607,19 @@ def update_print_formats():
 			C.F.C No. <span class="bold-text">223-1101</span> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
 			<span class="bold-text">Certification of Accuracy:</span> I certify that this account is correct and properly cast.
 			<br><br>
-			Signature: _________________________________________ Designation: ________________________________________
+			{% if ns_wf.cert %}
+				{% set cert_user = frappe.db.get_value("User", ns_wf.cert.owner, "full_name") or ns_wf.cert.owner %}
+				<div class="digital-stamp" style="border-color: #b8860b; color: #b8860b; background-color: rgba(184, 134, 11, 0.05);">
+					<div style="font-weight: bold; font-size: 8px; letter-spacing: 0.5px; border-bottom: 1px dashed #b8860b; padding-bottom: 2px; margin-bottom: 3px;">ACCURACY CERTIFIED</div>
+					<div style="font-size: 8px; font-weight: normal; text-transform: none; line-height: 1.2;">
+						Certifying Officer: <strong>{{ cert_user }}</strong><br>
+						Timestamp: {{ frappe.utils.format_datetime(ns_wf.cert.creation, "dd/MM/yyyy HH:mm") }}
+					</div>
+				</div>
+				<br>
+			{% else %}
+				Signature: _________________________________________ Designation: ________________________________________
+			{% endif %}
 		</div>
 
 		<h4 style="margin: 10px 0 4px 0; text-transform: uppercase; font-size: 10px; font-weight: bold;">To Be Completed by Paying Office</h4>
@@ -536,7 +632,19 @@ def update_print_formats():
 					<span class="bold-text">Public Finance (C & A) Act Certificate:</span><br>
 					I certify that this account is correct within the meaning of Section 12(b) of the Public Finance (C & A) Act.
 					<br><br>
-					Signature: ___________________________ (Certifying Officer) &nbsp; &nbsp; Date: _____/_____/_____
+					{% if ns_wf.cert %}
+						{% set cert_user = frappe.db.get_value("User", ns_wf.cert.owner, "full_name") or ns_wf.cert.owner %}
+						<div class="digital-stamp" style="border-color: #b8860b; color: #b8860b; background-color: rgba(184, 134, 11, 0.05);">
+							<div style="font-weight: bold; font-size: 8px; letter-spacing: 0.5px; border-bottom: 1px dashed #b8860b; padding-bottom: 2px; margin-bottom: 3px;">SEC 12(b) CERTIFIED</div>
+							<div style="font-size: 8px; font-weight: normal; text-transform: none; line-height: 1.2;">
+								Certifying Officer: <strong>{{ cert_user }}</strong><br>
+								Timestamp: {{ frappe.utils.format_datetime(ns_wf.cert.creation, "dd/MM/yyyy HH:mm") }}
+							</div>
+						</div>
+						<br>
+					{% else %}
+						Signature: ___________________________ (Certifying Officer) &nbsp; &nbsp; Date: _____/_____/_____
+					{% endif %}
 				</td>
 				<td style="width: 50%; font-size: 9.5px; background-color: #fafafa;" class="no-print-bg">
 					<div style="text-align: center; font-weight: bold; font-size: 10px; margin-bottom: 6px; border-bottom: 1px solid #000; padding-bottom: 2px;">
