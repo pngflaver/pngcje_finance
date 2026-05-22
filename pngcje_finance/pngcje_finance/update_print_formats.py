@@ -6,6 +6,15 @@ def update_print_formats():
 	<style>
 		@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap');
 		
+		.print-format {
+			orientation: Landscape;
+			width: 297mm !important;
+			max-width: 297mm !important;
+			min-height: 210mm;
+			padding: 10mm !important;
+			margin: auto !important;
+		}
+
 		.statutory-form {
 			font-family: 'Outfit', 'Inter', sans-serif;
 			color: #1a1a1a;
@@ -185,6 +194,14 @@ def update_print_formats():
 		@media print {
 			@page {
 				size: landscape;
+				margin: 10mm;
+			}
+			.print-format {
+				width: 100% !important;
+				max-width: 100% !important;
+				min-height: 0 !important;
+				padding: 0 !important;
+				margin: 0 !important;
 			}
 			body {
 				background-color: #fff !important;
