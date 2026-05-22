@@ -70,6 +70,13 @@ def setup_test_data():
 			"emp_id": "CO-001"
 		},
 		{
+			"email": "examiner_officer@example.com",
+			"first_name": "Finance",
+			"last_name": "Examiner",
+			"role": "Examiner Officer",
+			"emp_id": "EO-001"
+		},
+		{
 			"email": "pay_authorizer@example.com",
 			"first_name": "Finance",
 			"last_name": "Director",

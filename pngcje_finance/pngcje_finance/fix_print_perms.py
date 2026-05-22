@@ -5,6 +5,7 @@ def fix_print_permissions():
 		'PNGCJE Requisitioning Officer',
 		'Financial Delegate',
 		'Section 32 Officer',
+		'Examiner Officer',
 		'Certifying Officer',
 		'Payment Authorizer'
 	]

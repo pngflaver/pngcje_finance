@@ -6,6 +6,7 @@ def create_workflow():
 		"PNGCJE Requisitioning Officer",
 		"Financial Delegate",
 		"Section 32 Officer",
+		"Examiner Officer",
 		"Certifying Officer",
 		"Payment Authorizer"
 	]
@@ -20,6 +21,7 @@ def create_workflow():
 		"Pending Sec 32 Approval",
 		"Approved (Committed)",
 		"Pending Claim Certification",
+		"Pending Payment Authorization",
 		"Ready for Payment"
 	]
 	for state in states:
@@ -31,8 +33,9 @@ def create_workflow():
 		"Submit for Funds Check",
 		"Certify Funds",
 		"Approve Expenditure",
-		"Submit for Certification",
-		"Certify Claim"
+		"Examine Claim",
+		"Certify Claim",
+		"Authorize Payment"
 	]
 	for action in actions:
 		if not frappe.db.exists("Workflow Action Master", action):
@@ -55,8 +58,9 @@ def create_workflow():
 			{"state": "Pending Funds Check", "doc_status": 0, "allow_edit": "Financial Delegate"},
 			{"state": "Pending Sec 32 Approval", "doc_status": 0, "allow_edit": "Section 32 Officer"},
 			# Once submitted, we allow the next officers in line to "edit" (which in Frappe submitted mode means "see buttons")
-			{"state": "Approved (Committed)", "doc_status": 1, "allow_edit": "Certifying Officer"},
+			{"state": "Approved (Committed)", "doc_status": 1, "allow_edit": "Examiner Officer"},
 			{"state": "Pending Claim Certification", "doc_status": 1, "allow_edit": "Certifying Officer"},
+			{"state": "Pending Payment Authorization", "doc_status": 1, "allow_edit": "Payment Authorizer"},
 			{"state": "Ready for Payment", "doc_status": 1, "allow_edit": "Payment Authorizer"}
 		],
 		"transitions": [
@@ -80,22 +84,54 @@ def create_workflow():
 			},
 			{
 				"state": "Approved (Committed)",
+				"action": "Examine Claim",
+				"next_state": "Pending Claim Certification",
+				"allowed": "Examiner Officer"
+			},
+			{
+				"state": "Pending Claim Certification",
 				"action": "Certify Claim",
-				"next_state": "Ready for Payment",
+				"next_state": "Pending Payment Authorization",
 				"allowed": "Certifying Officer"
+			},
+			{
+				"state": "Pending Payment Authorization",
+				"action": "Authorize Payment",
+				"next_state": "Ready for Payment",
+				"allowed": "Payment Authorizer"
 			}
 		]
 	})
 	workflow.insert()
 	
-	# 5. CRITICAL: Grant 'Submit' permission to Certifying Officer 
-	# In Frappe, to move a Submitted doc to another state, the user needs 'Submit' permission on the DocType
-	if not frappe.db.exists("Custom DocPerm", {"parent": "PNGCJE Cashbook Entry", "role": "Certifying Officer", "submit": 1}):
-		frappe.db.sql("""update `tabCustom DocPerm` set submit=1, cancel=1 
-			where parent='PNGCJE Cashbook Entry' and role in ('Certifying Officer', 'Payment Authorizer')""")
+	# 5. CRITICAL: Grant 'Submit' and 'Cancel' permissions to roles that act on submitted documents
+	roles_to_permit = ["Section 32 Officer", "Examiner Officer", "Certifying Officer", "Payment Authorizer"]
+	for role in roles_to_permit:
+		if not frappe.db.exists("Custom DocPerm", {"parent": "PNGCJE Cashbook Entry", "role": role}):
+			frappe.get_doc({
+				"doctype": "Custom DocPerm",
+				"parent": "PNGCJE Cashbook Entry",
+				"parenttype": "DocType",
+				"parentfield": "permissions",
+				"role": role,
+				"read": 1,
+				"write": 1,
+				"submit": 1,
+				"cancel": 1,
+				"print": 1,
+				"email": 1,
+				"permlevel": 0
+			}).insert(ignore_permissions=True)
+		else:
+			frappe.db.sql("""
+				UPDATE `tabCustom DocPerm` 
+				SET submit=1, cancel=1, `write`=1 
+				WHERE parent='PNGCJE Cashbook Entry' AND role=%s
+			""", (role,))
 
 	frappe.db.commit()
 	print(f"Workflow '{workflow_name}' updated successfully.")
 
 if __name__ == "__main__":
 	create_workflow()
+

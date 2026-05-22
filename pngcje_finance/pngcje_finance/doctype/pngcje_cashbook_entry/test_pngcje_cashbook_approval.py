@@ -13,6 +13,7 @@ class TestPNGCJECashbookApproval(FrappeTestCase):
 			"PNGCJE Requisitioning Officer",
 			"Financial Delegate",
 			"Section 32 Officer",
+			"Examiner Officer",
 			"Certifying Officer",
 			"Payment Authorizer"
 		]
@@ -35,6 +36,7 @@ class TestPNGCJECashbookApproval(FrappeTestCase):
 			"Pending Sec 32 Approval",
 			"Approved (Committed)",
 			"Pending Claim Certification",
+			"Pending Payment Authorization",
 			"Ready for Payment"
 		]
 		actual_states = [s.state for s in workflow.states]

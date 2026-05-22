@@ -133,3 +133,55 @@ class TestPNGCJEStatutoryForms(FrappeTestCase):
 		self.assertIn("REQUISITION FOR EXPENDITURE (FF3)", rendered)
 		self.assertIn("Travel to Lae", rendered)
 		self.assertIn("Air Niugini", rendered)
+
+	def test_ff4_rendering_manually(self):
+		"""
+		Manually render the FF4 Jinja to ensure it works.
+		"""
+		pf = frappe.get_doc("Print Format", "PNGCJE FF4 - General Expenses")
+		rendered = frappe.render_template(pf.html, {"doc": self.sample_doc})
+		self.assertIn("GENERAL EXPENSES (FF4)", rendered)
+		self.assertIn("Travel to Lae", rendered)
+		self.assertIn("Air Niugini", rendered)
+
+	def test_rendering_with_workflow_stamps(self):
+		"""
+		Create workflow comments and verify that the stamps are rendered in the HTML.
+		"""
+		# Clean comments for sample_doc
+		frappe.db.delete("Comment", {"reference_doctype": "PNGCJE Cashbook Entry", "reference_name": self.sample_doc.name})
+
+		# Create mock workflow comments
+		comments = [
+			{"content": "Pending Funds Check", "owner": "req_officer@example.com"},
+			{"content": "Pending Sec 32 Approval", "owner": "fin_delegate@example.com"},
+			{"content": "Approved (Committed)", "owner": "sec32_officer@example.com"},
+			{"content": "Pending Claim Certification", "owner": "examiner_officer@example.com"},
+			{"content": "Pending Payment Authorization", "owner": "cert_officer@example.com"},
+			{"content": "Ready for Payment", "owner": "pay_authorizer@example.com"}
+		]
+		for comment in comments:
+			frappe.get_doc({
+				"doctype": "Comment",
+				"comment_type": "Workflow",
+				"reference_doctype": "PNGCJE Cashbook Entry",
+				"reference_name": self.sample_doc.name,
+				"content": comment["content"],
+				"owner": comment["owner"]
+			}).insert()
+
+		# Render FF3 and assert stamps exist
+		pf_ff3 = frappe.get_doc("Print Format", "PNGCJE FF3 - Requisition for Expenditure")
+		rendered_ff3 = frappe.render_template(pf_ff3.html, {"doc": self.sample_doc})
+		self.assertIn("DIGITALLY SIGNED / SUBMITTED", rendered_ff3)
+		self.assertIn("FUNDS CERTIFIED", rendered_ff3)
+		self.assertIn("SEC 32 APPROVED", rendered_ff3)
+		self.assertIn("COMMITTED", rendered_ff3)
+
+		# Render FF4 and assert stamps exist
+		pf_ff4 = frappe.get_doc("Print Format", "PNGCJE FF4 - General Expenses")
+		rendered_ff4 = frappe.render_template(pf_ff4.html, {"doc": self.sample_doc})
+		self.assertIn("ACCURACY CERTIFIED", rendered_ff4)
+		self.assertIn("EXAMINED", rendered_ff4)
+		self.assertIn("SEC 12(b) CERTIFIED", rendered_ff4)
+		self.assertIn("PAYMENT AUTHORIZED", rendered_ff4)

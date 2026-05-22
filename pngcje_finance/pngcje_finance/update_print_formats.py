@@ -1,20 +1,10 @@
 import frappe
 
 def update_print_formats():
-	# CSS styling for forms (shared / included in both)
-	style = """
-	<style>
+	# Shared CSS styling for both forms
+	shared_style = """
 		@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap');
 		
-		.print-format {
-			orientation: Landscape;
-			width: 297mm !important;
-			max-width: 297mm !important;
-			min-height: 210mm;
-			padding: 10mm !important;
-			margin: auto !important;
-		}
-
 		.statutory-form {
 			font-family: 'Outfit', 'Inter', sans-serif;
 			color: #1a1a1a;
@@ -208,6 +198,67 @@ def update_print_formats():
 			text-align: left;
 			box-sizing: border-box;
 		}
+	"""
+
+	# Portrait styling for FF3
+	style_portrait = "<style>" + shared_style + """
+		.print-format {
+			orientation: Portrait;
+			width: 210mm !important;
+			max-width: 210mm !important;
+			min-height: 297mm;
+			padding: 10mm !important;
+			margin: auto !important;
+		}
+		
+		@media print {
+			@page {
+				size: portrait;
+				margin: 10mm;
+			}
+			.print-format {
+				width: 100% !important;
+				max-width: 100% !important;
+				min-height: 0 !important;
+				padding: 0 !important;
+				margin: 0 !important;
+			}
+			body {
+				background-color: #fff !important;
+			}
+			.theme-green {
+				background-color: #fff !important;
+				border-color: #000 !important;
+			}
+			.theme-green .header-container {
+				border-color: #000 !important;
+				color: #000 !important;
+			}
+			.sig-block {
+				background-color: #fff !important;
+			}
+			.coding-table th, .particulars-table th {
+				background-color: #f0f0f0 !important;
+				-webkit-print-color-adjust: exact;
+				print-color-adjust: exact;
+			}
+			.no-print {
+				display: none !important;
+			}
+		}
+	</style>
+	"""
+
+	# Landscape styling for FF4
+	style_landscape = "<style>" + shared_style + """
+		.print-format {
+			orientation: Landscape;
+			width: 297mm !important;
+			max-width: 297mm !important;
+			min-height: 210mm;
+			padding: 10mm !important;
+			margin: auto !important;
+		}
 		
 		@media print {
 			@page {
@@ -224,11 +275,11 @@ def update_print_formats():
 			body {
 				background-color: #fff !important;
 			}
-			.theme-green, .theme-yellow {
+			.theme-yellow {
 				background-color: #fff !important;
 				border-color: #000 !important;
 			}
-			.theme-green .header-container, .theme-yellow .header-container {
+			.theme-yellow .header-container {
 				border-color: #000 !important;
 				color: #000 !important;
 			}
@@ -267,7 +318,7 @@ def update_print_formats():
 	{% endif %}
 	"""
 
-	ff3_html = style + account_parsing_jinja + """
+	ff3_html = style_portrait + account_parsing_jinja + """
 	{% set comments = frappe.get_all("Comment", filters={"reference_doctype": "PNGCJE Cashbook Entry", "reference_name": doc.name, "comment_type": "Workflow"}, fields=["creation", "owner", "content"], order_by="creation asc") %}
 	{% set ns_wf = namespace(req=none, fund=none, sec32=none) %}
 	{% for c in comments %}
@@ -484,8 +535,8 @@ def update_print_formats():
 					<div class="sig-title">4. Funds Committed</div>
 					Requisition has been entered in the commitment register.
 					<br><br>
-					{% if ns_wf.sec32 %}
-						{% set commit_user = frappe.db.get_value("User", ns_wf.sec32.owner, "full_name") or ns_wf.sec32.owner %}
+					{% if ns_wf.sec32 and ns_wf.fund %}
+						{% set commit_user = frappe.db.get_value("User", ns_wf.fund.owner, "full_name") or ns_wf.fund.owner %}
 						<div class="digital-stamp" style="border-color: #1b4d3e; color: #1b4d3e; background-color: rgba(27, 77, 62, 0.05);">
 							<div style="font-weight: bold; font-size: 8px; letter-spacing: 0.5px; border-bottom: 1px dashed #1b4d3e; padding-bottom: 2px; margin-bottom: 3px;">COMMITTED</div>
 							<div style="font-size: 8px; font-weight: normal; text-transform: none; line-height: 1.2;">
@@ -507,12 +558,16 @@ def update_print_formats():
 	# ----------------------------------------------------
 	# FF4 Print Format Design (individual claim sheets)
 	# ----------------------------------------------------
-	ff4_html = style + account_parsing_jinja + """
+	ff4_html = style_landscape + account_parsing_jinja + """
 	{% set comments = frappe.get_all("Comment", filters={"reference_doctype": "PNGCJE Cashbook Entry", "reference_name": doc.name, "comment_type": "Workflow"}, fields=["creation", "owner", "content"], order_by="creation asc") %}
-	{% set ns_wf = namespace(cert=none) %}
+	{% set ns_wf = namespace(examine=none, cert=none, pay_auth=none) %}
 	{% for c in comments %}
-		{% if c.content == "Ready for Payment" %}
+		{% if c.content == "Pending Claim Certification" %}
+			{% set ns_wf.examine = c %}
+		{% elif c.content == "Pending Payment Authorization" %}
 			{% set ns_wf.cert = c %}
+		{% elif c.content == "Ready for Payment" %}
+			{% set ns_wf.pay_auth = c %}
 		{% endif %}
 	{% endfor %}
 	<!-- GENERAL EXPENSES (FF4) -->
@@ -628,7 +683,20 @@ def update_print_formats():
 				<td style="width: 50%; font-size: 9.5px;">
 					Date of Registration: _______________________<br>
 					[ &nbsp; ] Not previously paid &nbsp; &nbsp; &nbsp; [ &nbsp; ] F.D.'s signature verified<br>
-					Examined By: _____________________________<br><br>
+					Examined By:
+					{% if ns_wf.examine %}
+						{% set examine_user = frappe.db.get_value("User", ns_wf.examine.owner, "full_name") or ns_wf.examine.owner %}
+						<div class="digital-stamp" style="border-color: #1b4d3e; color: #1b4d3e; background-color: rgba(27, 77, 62, 0.05); display: inline-block; vertical-align: middle; margin: 2px 0;">
+							<div style="font-weight: bold; font-size: 8px; letter-spacing: 0.5px; border-bottom: 1px dashed #1b4d3e; padding-bottom: 1px; margin-bottom: 2px;">EXAMINED</div>
+							<div style="font-size: 8px; font-weight: normal; text-transform: none; line-height: 1.1;">
+								Examiner: <strong>{{ examine_user }}</strong><br>
+								Timestamp: {{ frappe.utils.format_datetime(ns_wf.examine.creation, "dd/MM/yyyy HH:mm") }}
+							</div>
+						</div>
+					{% else %}
+						_____________________________<br>
+					{% endif %}
+					<br>
 					<span class="bold-text">Public Finance (C & A) Act Certificate:</span><br>
 					I certify that this account is correct within the meaning of Section 12(b) of the Public Finance (C & A) Act.
 					<br><br>
@@ -660,6 +728,26 @@ def update_print_formats():
 					Recipient Signature: ______________________ Witness: ______________________
 				</td>
 			</tr>
+			{% if ns_wf.pay_auth %}
+			<tr>
+				<td colspan="2" style="background-color: #fff; text-align: center; padding: 10px;">
+					{% set pay_user = frappe.db.get_value("User", ns_wf.pay_auth.owner, "full_name") or ns_wf.pay_auth.owner %}
+					<div class="digital-stamp" style="border-color: #008000; color: #008000; background-color: rgba(0, 128, 0, 0.05); font-size: 10px; padding: 8px 16px; display: inline-block;">
+						<div style="font-weight: bold; font-size: 10px; letter-spacing: 1px; border-bottom: 2px dashed #008000; padding-bottom: 3px; margin-bottom: 4px; text-align: center;">PAYMENT AUTHORIZED</div>
+						<div style="font-size: 9px; font-weight: normal; text-transform: none; line-height: 1.3; text-align: left;">
+							Authorizing Officer: <strong>{{ pay_user }} (Director Finance)</strong><br>
+							Date Authorized: {{ frappe.utils.format_datetime(ns_wf.pay_auth.creation, "dd/MM/yyyy HH:mm") }}
+						</div>
+					</div>
+				</td>
+			</tr>
+			{% else %}
+			<tr>
+				<td colspan="2" style="font-size: 9.5px; padding: 8px;">
+					<span class="bold-text">Payment Authorization (Director Finance):</span> Signature: _________________________________________ Date: _____/_____/_____
+				</td>
+			</tr>
+			{% endif %}
 		</table>
 	</div>
 	{% endfor %}
