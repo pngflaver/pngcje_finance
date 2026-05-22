@@ -1,6 +1,8 @@
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
+# test_dependencies = ["Gender", "Employee"]
+
 class TestPNGCJECashbookApproval(FrappeTestCase):
 	def setUp(self):
 		"""

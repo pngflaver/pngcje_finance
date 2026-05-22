@@ -85,6 +85,12 @@ app_license = "mit"
 # before_install = "pngcje_finance.install.before_install"
 # after_install = "pngcje_finance.install.after_install"
 
+after_migrate = [
+	"pngcje_finance.pngcje_finance.update_print_formats.update_print_formats",
+	"pngcje_finance.pngcje_finance.setup_workflow.create_workflow",
+	"pngcje_finance.pngcje_finance.fix_print_perms.fix_print_permissions"
+]
+
 # Uninstallation
 # ------------
 

@@ -65,6 +65,6 @@ class PNGCJECashbookEntry(Document):
 					"<b>Attempted Total:</b> {0}<br>"
 					"<b>Monthly Limit ({1}):</b> {2}<br><br>"
 					"Your transaction has been blocked. Please reduce the quantities or unit prices.") \
-				.format(fmt_money(self.amount, "PGK"), month_name, fmt_money(monthly_limit, "PGK"))
+				.format(fmt_money(self.amount, currency="PGK"), month_name, fmt_money(monthly_limit, currency="PGK"))
 			
 			frappe.throw(msg=msg, title=_("Budget Enforcement"))
